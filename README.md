@@ -39,3 +39,7 @@ git clone https://github.com/jetpropulsioncloud/northgard-analyzer.git
 cd northgard-analyzer
 npm install
 npm start
+---
+
+© 2025 Blockclub Team  
+Contact: playblockclub.com@gmail.com

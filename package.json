@@ -1,17 +1,19 @@
 {
   "name": "northgardanalyzer",
-  "version": "1.4.2",
+  "version": "1.4.4",
   "productName": "northgardanalyzer",
   "main": "main.js",
-  "author": "Cloudpdf",
+  "author": "Blockclub Team",
   "license": "ISC",
   "description": "We'll figure it out later lol",
+
   "scripts": {
     "start": "electron-forge start",
-    "package": "electron-builder",
-    "build": "electron-builder",
-    "publish": "electron-builder --publish always"
+    "dist": "electron-builder -w",
+    "build": "electron-builder -w",
+    "publish": "electron-builder -w -p always"
   },
+
   "devDependencies": {
     "@electron-forge/cli": "^7.8.1",
     "electron": "^37.2.0",
@@ -23,25 +25,36 @@
     "firebase": "^12.0.0",
     "yaml": "^2.8.0"
   },
+
   "build": {
+    "copyright": "© 2025 Blockclub Team",
     "appId": "com.northgardanalyzer.app",
     "productName": "northgardanalyzer",
+    "directories": { "output": "dist" },
+
     "files": [
-      "**/*",
-      "!**/*.txt"
+      "index.html",
+      "viewBuild.html",
+      "renderer.js",
+      "main.js",
+      "preload.js",
+      "style.css",
+      "assets/**/*",
+      "!**/*.txt",
+      "package.json"
     ],
-    "directories": {
-      "output": "dist"
-    },
-    "publish": {
-      "provider": "github",
-      "owner": "jetpropulsioncloud",
-      "repo": "northgard-analyzer"
-    },
+
+    "asar": true,
+
+    "publish": [
+      { "provider": "github", "owner": "jetpropulsioncloud", "repo": "northgard-analyzer" }
+    ],
+
     "win": {
       "target": "nsis",
       "icon": "assets/longhouse-icon.ico"
     },
+
     "nsis": {
       "oneClick": false,
       "perMachine": true,

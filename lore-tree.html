@@ -1,4 +1,14 @@
-
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data:;
+  font-src 'self';
+  connect-src 'self' https://firestore.googleapis.com https://*.firebaseio.com https://www.googleapis.com;
+  frame-src 'self';
+  object-src 'none';
+  base-uri 'self';
+">
 <div class="lore-image-container">
   <div class="gradient-bg"></div>
   <img src="assets/longhouse-icon.ico" alt="Lore Tree Background" class="lore-background">

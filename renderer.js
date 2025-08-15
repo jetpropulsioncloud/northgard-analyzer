@@ -482,7 +482,7 @@ document.addEventListener("DOMContentLoaded", () => {
       statusMsg.textContent = "❌ Error submitting build. Check console.";
     }
     newName.value = "";
-    newClan.selectedindex = 0;
+    newClan.selectedIndex = 0;
     lorePicker.innerHTML = '';
     loreOrderState = [];
     for (let year = 800; year <= 804; year++) {
