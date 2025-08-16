@@ -1,6 +1,6 @@
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
-  script-src 'self';
+  script-src 'self' https://www.gstatic.com 'nonce-theLonghouse2025';
   style-src 'self' 'unsafe-inline';
   img-src 'self' data:;
   font-src 'self';
@@ -95,7 +95,7 @@
   }
 </style>
 
-<script>
+<script type="module" nonce="theLonghouse2025">
   const checkboxGrid = document.getElementById("checkboxGrid");
   const tierLinesContainer = document.getElementById("tierLines");
   let clickCounter = 1;

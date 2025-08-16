@@ -3,7 +3,7 @@
 <head>
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self';
+    script-src 'self' 'nonce-theLonghouse2025';
     style-src 'self' 'unsafe-inline';
     img-src 'self' data:;
     font-src 'self';
@@ -87,13 +87,13 @@
         <div class="build-title-text">Build Viewer</div>
         <div class="build-subtitle">(Requires Northgard in Windowed or Borderless Mode)</div>
       </div>
-      <button onclick="closeApp()">X</button>
+      <button id="closeAppBtn">X</button>
     </div>
     <div id="buildViewerContainer" class="no-drag-scrollable">
       <div id="buildContent"></div>
     </div>
 
-<script>
+<script type="module" nonce="theLonghouse2025">
   const { ipcRenderer } = require('electron');
 
   // Close the popup
@@ -205,6 +205,13 @@
       container.innerHTML = `<div><strong>📜 Lore Order:</strong><ul>${items}</ul></div>`;
     }
   }
+  document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('closeAppBtn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      try { window.close(); } catch (_) {}
+    });
+  });
 </script>
 </body>
 </html>

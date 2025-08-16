@@ -3,15 +3,21 @@
 <head>
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
-    script-src 'self';
+    script-src 'self' https://www.gstatic.com 'nonce-theLonghouse2025';
     style-src 'self' 'unsafe-inline';
     img-src 'self' data:;
     font-src 'self';
-    connect-src 'self' https://firestore.googleapis.com https://*.firebaseio.com https://www.googleapis.com;
+    connect-src 'self'
+      https://firestore.googleapis.com
+      https://*.firebaseio.com
+      https://www.googleapis.com
+      https://identitytoolkit.googleapis.com
+      https://securetoken.googleapis.com;
     frame-src 'self';
     object-src 'none';
     base-uri 'self';
   ">
+
   <link rel="icon" type="image/x-icon" href="assets/longhouse-icon.ico">
   <meta charset="UTF-8">
   <title>The Longhouse</title>
@@ -70,7 +76,7 @@
   </span>
   <div>
     <button id="logoutBtn">Logout</button>
-    <button onclick="closeApp()">X</button>
+    <button id="closeAppBtn">X</button>
   </div>
 </div>
 
@@ -106,10 +112,11 @@
 <div id="home-screen" style="display: none;">
   <div class="content-wrapper">
     <nav>
-      <button onclick="showTab('build-tab')">Current Builds</button>
-      <button onclick="showTab('post-tab')">Post Build</button>
-      <button onclick="showTab('profile-tab')">Profile</button>
+      <button id="buildTabBtn">Current Builds</button>
+      <button id="postTabBtn">Post Build</button>
+      <button id="profileTabBtn">Profile</button>
     </nav>
+
 
   <div id="build-tab" class="tab-content">
     <div class="overlay">
@@ -258,7 +265,7 @@
   </div>
 </div>
 
-<script type="module">
+<script type="module" nonce="theLonghouse2025">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
   import {
     getAuth,
@@ -316,7 +323,7 @@
 
   console.log("✅ Firebase initialized and exposed globally.");
 </script>
-<script src="renderer.js"></script>
+<script type="module" src="./renderer.js" defer></script>
 <input type="text" id="focusTrap" style="position:absolute; opacity:0; pointer-events:none;">
 <div id="updateProgressContainer" style="display:none; position: fixed; bottom: 10px; left: 10px; right: 10px; background: #222; color: white; padding: 10px; border-radius: 8px;">
   🔄 Downloading update... <progress id="updateProgressBar" value="0" max="100"></progress>
