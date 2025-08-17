@@ -198,25 +198,58 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      loginSection.style.display = "none";
-      const reg = document.getElementById("register-screen");
-      if (reg) reg.style.display = "none";
-      homeScreen.style.display = "block";
-      showTab("build-tab");
-      authStatus.textContent = `✅ Logged in as ${user.email}`;
-      loadUserBuilds(user.uid);
-      setTimeout(() => { refreshBuildsBtn?.click(); }, 200);
-    } else {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
       loginSection.style.display = "block";
       homeScreen.style.display = "none";
       buildList.innerHTML = "";
       buildSelector.innerHTML = "";
       authStatus.textContent = "🔒 Please log in";
+      return;
     }
-  });
+    loginSection.style.display = "none";
+    const reg = document.getElementById("register-screen");
+    if (reg) reg.style.display = "none";
+    homeScreen.style.display = "block";
+    showTab("build-tab");
 
+    const userRef = doc(db, "users", user.uid);
+    let userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      console.log("No /users/{uid} doc found — checking for legacy doc…");
+      const q = query(collection(db, "users"), where("uid", "==", user.uid));
+      const oldSnap = await getDocs(q);
+
+      if (!oldSnap.empty) {
+        const oldData = oldSnap.docs[0].data();
+        await setDoc(userRef, {
+          uid: user.uid,
+          email: oldData.email || user.email || "",
+          username: oldData.username || (user.email ? user.email.split("@")[0] : "player"),
+          createdAt: oldData.createdAt || Date.now()
+        });
+        console.log("✅ Migrated legacy user doc");
+      } else {
+        const fallbackName = (user.email && user.email.split("@")[0]) || "player";
+        await setDoc(userRef, {
+          uid: user.uid,
+          email: user.email || "",
+          username: fallbackName,
+          createdAt: Date.now()
+        });
+        console.log("✅ Created fresh user doc");
+      }
+
+      userSnap = await getDoc(userRef); 
+    }
+
+    const userData = userSnap.data();
+    authStatus.textContent = `✅ Logged in as ${userData.username || userData.email}`;
+
+    loadUserBuilds(user.uid);
+    setTimeout(() => { refreshBuildsBtn?.click(); }, 200);
+  });
   if (refreshBuildsBtn) {
     refreshBuildsBtn.addEventListener("click", async () => {
       await loadBuilds(true, true);

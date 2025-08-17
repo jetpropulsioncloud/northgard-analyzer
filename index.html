@@ -281,14 +281,15 @@
     getFirestore,
     collection,
     getDocs,
+    getDoc,
     addDoc,
     query,
+    setDoc,
     where,
     deleteDoc,
     doc,
     updateDoc
   } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
-
   const firebaseConfig = {
     apiKey: "AIzaSyDBHT5V9wrjqPvvuNsFr5q1sY0lgVmjVYk",
     authDomain: "northgardbuilds.firebaseapp.com",
@@ -312,6 +313,8 @@
   window.deleteDoc = deleteDoc;
   window.doc = doc;
   window.updateDoc = updateDoc;
+  window.getDoc = getDoc;
+  window.setDoc = setDoc;
 
   window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
   window.signInWithEmailAndPassword = signInWithEmailAndPassword;
