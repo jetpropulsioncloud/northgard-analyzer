@@ -586,28 +586,107 @@
     ],
     "unique_lore": []
   },
-"Hippogriff": {
+  "Hound": {
     "has_common_lore": [
+      "Carpentry Mastery",
+      "Coinage",
+      "Colonization",
+      "Defensive Strategy",
+      "Erudition",
+      "Fur Coats",
+      "Hearthstone",
+      "Legendary Heroes",
+      "Medicine",
+      "Military Strategy",
+      "Mining Efficiency",
+      "Monster Slayer",
+      "Negotiation",
+      "Recruitment",
+      "Sharp Axes",
+      "Shiny Happy People",
+      "Shipbuilding",
+      "Trading Caravan"
     ],
     "missing_common_lore": [
+      "Feeling Safe",
+      "Weaponsmith"
     ],
     "unique_lore": [
+      "Bloodthirst",
+      "Heavy Workforce",
+      "Horde Instinct",
+      "Battle Scars",
+      "Living Legends"
     ]
   },
-"Hound": {
+  "Turtle": {
     "has_common_lore": [
+      "Carpentry Mastery",
+      "Coinage",
+      "Colonization",
+      "Defensive Strategy",
+      "Eradication",
+      "Erudition",
+      "Fur Coats",
+      "Hearthstone",
+      "Legendary Heroes",
+      "Medicine",
+      "Military Strategy",
+      "Mining Efficiency",
+      "Monster Slayer",
+      "Negotiation",
+      "Recruitment",
+      "Sharp Axes",
+      "Shiny Happy People",
+      "Trading Caravan"
     ],
     "missing_common_lore": [
+      "Feeling Safe",
+      "Shipbuilding"
     ],
     "unique_lore": [
+      "Overcompensation",
+      "Supply Chain",
+      "Advanced Prospection",
+      "Aggressive Marketing",
+      "Assets Export"
     ]
   },
-"Turtle": {
+  "Hippogriff": {
     "has_common_lore": [
+      "Carpentry Mastery",
+      "Coinage",
+      "Colonization",
+      "Defensive Strategy",
+      "Erudition",
+      "Fur Coats",
+      "Legendary Heroes",
+      "Medicine",
+      "Military Strategy",
+      "Monster Slayer",
+      "Negotiation",
+      "Sharp Axes",
+      "Shiny Happy People",
+      "Trading Caravan",
+      "Weaponsmith"
     ],
     "missing_common_lore": [
+      "Feeling Safe",
+      "Hearthstone",
+      "Mining Efficiency",
+      "Recruitment",
+      "Shipbuilding"
     ],
     "unique_lore": [
+      "Furnace Mastery",
+      "Fan the Flames",
+      "Flame Unleashed",
+      "Kindling Spark",
+      "Missi dominici",
+      "Emporia",
+      "Via Regia",
+      "Scriptoria",
+      "Ember of Prosperity"
     ]
   }
 }

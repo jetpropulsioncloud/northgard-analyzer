@@ -474,7 +474,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (loreTreeMode.checked) {
       const treeWindow = loreTreeFrame.contentWindow;
       if (treeWindow && typeof treeWindow.getSelectedLoreIndexes === "function") {
-        selectedLores = treeWindow.getSelectedLoreIndexes();
+        selectedLores = [...treeWindow.getSelectedLoreIndexes()];
       } else {
         statusMsg.textContent = "❌ Could not get lore from lore tree.";
         return;

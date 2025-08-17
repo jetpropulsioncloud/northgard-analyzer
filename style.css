@@ -152,7 +152,7 @@ nav button:hover {
   overflow-y: auto;
   padding: 16px;
   box-sizing: border-box;
-  background-color: transparent;
+  background:rgba(27,23,19,0.72);
   backdrop-filter: blur(6px);
   border-radius: 0 0 10px 10px;
 }
