@@ -168,7 +168,27 @@
   <div id="post-tab" class="tab-content" style="display: none;">
     <div class="overlay">
       <h2>Submit Your Build</h2>
-
+    <button id="howToSubmitBtn" class="collapsible">❓ How to Submit Builds</button>
+    <div id="howToSubmitContent" class="content" style="display:none; margin-top:10px; font-size:14px; color:#ddd;">
+      <p><em>Quick guide — type your build like a checklist.</em></p>
+      <ol>
+        <li>Enter a <strong>Build Name</strong> (so others know what it is).</li>
+        <li>Pick your <strong>Clan</strong>.</li>
+        <li>Select a <strong>Military Path</strong>.</li>
+        <li>Choose your <strong>Lore</strong> style (List or Tree).</li>
+        <li><strong>Optional:</strong> Add <strong>Situational Tags</strong> (Forest, Iron, Ruins, etc.).</li>
+        <li>Write your <strong>Steps Per Year (800–804)</strong>:  
+          <ul style="margin:6px 0 0 18px; padding:0;">
+            <li><strong>Step = one action you do in-game</strong> (example: build a House).</li>
+            <li><strong>One step per line</strong> in that year’s box.</li>
+            <li>Press <strong>Enter</strong> after each step to start a new line.</li>
+            <li>You only click <strong>Submit Build once</strong> when the whole build is finished.</li>
+          </ul>
+        </li>
+        <li>Click <strong>Submit Build</strong> at the bottom.</li>
+      </ol>
+    </div>
+      <input id="newName" type="text" placeholder="Build Name" />
       <div class="situational-tags-container">
         <button id="toggleSituationalTags" class="collapsible">+ Situational Tags</button>
         <div id="situationalTagsContent" class="content" style="display: none;">
@@ -215,11 +235,6 @@
           </select>
         </div>
       </div>
-
-      <label for="newName" class="input-label">Build Name:</label>
-      <input id="newName" type="text" placeholder="Build Name" />
-      <br><br>
-
       <select id="newClan">
         <option value="" disabled selected>Select Clan</option>
         <option value="Stag">Stag</option>
@@ -244,7 +259,6 @@
         <option value="Owl">Owl</option>
         <option value="Stoat">Stoat</option>
       </select>
-
       <label for="selectedPath">Military Path:</label>
       <select id="selectedPath"></select>
       

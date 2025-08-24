@@ -4,7 +4,25 @@ document.addEventListener("DOMContentLoaded", () => {
   window.setPersistence(window.auth, persistenceMode).then(() => {
     console.log("✅ Persistence set:", stayLoggedIn ? "Local" : "Session");
   });
+  const loginSection = document.getElementById("login-screen");  
+  const homeScreen = document.getElementById("home-screen");
+  const guestNotice = document.createElement("div");
+  guestNotice.id = "guestNotice";
+  guestNotice.style.cssText =
+    "margin:12px 0;padding:10px;border:1px solid #ccc;border-radius:8px;font-size:14px;background:#111;color:#ddd;display:none;";
+  guestNotice.textContent = "You’re browsing builds. Sign in to favorite or post your own.";
+  homeScreen.prepend(guestNotice);
 
+  const guestAuthBtn = document.createElement("button");
+  guestAuthBtn.id = "guestAuthBtn";
+  guestAuthBtn.textContent = "🔑 Login / Register";
+  guestAuthBtn.style.cssText =
+    "display:none;margin:8px 0;padding:6px 12px;border:none;border-radius:6px;background:#444;color:#fff;cursor:pointer;";
+  guestAuthBtn.addEventListener("click", () => {
+    homeScreen.style.display = "none";
+    loginSection.style.display = "block";
+  });
+  homeScreen.prepend(guestAuthBtn);
   const buildSelector = document.getElementById("buildSelector");
   const buildList = document.getElementById("buildList");
   const submitBtn = document.getElementById("submitBuild");
@@ -19,8 +37,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const registerBtn = document.getElementById("registerBtn");
   const authStatus = document.getElementById("authStatus");
   const logoutBtn = document.getElementById("logoutBtn");
-  const loginSection = document.getElementById("login-screen");
-  const homeScreen = document.getElementById("home-screen");
   const tabContents = document.querySelectorAll(".tab-content");
   const yearlyContainer = document.getElementById("yearly-builds");
   const pathSelector = document.getElementById("selectedPath");
@@ -49,6 +65,8 @@ document.addEventListener("DOMContentLoaded", () => {
     db,
     collection,
     getDocs,
+    getDoc,
+    setDoc, 
     addDoc,
     auth,
     createUserWithEmailAndPassword,
@@ -134,43 +152,48 @@ document.addEventListener("DOMContentLoaded", () => {
     pathSelector.innerHTML = "";
     lorePicker.innerHTML = "";
     loreOrderState = [];
-
     const paths = militaryPaths[clan]?.military_paths || [];
-    paths.forEach(p => {
+    for (const p of paths) {
       const opt = document.createElement("option");
       opt.value = p;
       opt.textContent = p;
       pathSelector.appendChild(opt);
-    });
-
-    const availableLore = [
-      ...(clanLore[clan]?.has_common_lore || []),
-      ...(clanLore[clan]?.unique_lore || [])
-    ];
-
-    availableLore.forEach(lore => {
+    }
+    let availableLore = [];
+    const entry = clanLore[clan];
+    if (Array.isArray(entry)) {
+      availableLore = entry;
+    } else if (entry && typeof entry === "object") {
+      availableLore = [
+        ...(entry.has_common_lore || []),
+        ...(entry.unique_lore || [])
+      ];
+    }
+    for (const lore of availableLore) {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = "lore-button";
       btn.textContent = lore;
       btn.dataset.lore = lore;
+      btn.dataset.order = ""; 
       btn.addEventListener("click", () => {
-        const idx = loreOrderState.findIndex(item => item.lore === lore);
+        const idx = loreOrderState.findIndex(x => x.lore === lore);
         if (idx === -1) {
           loreOrderState.push({ lore, order: loreOrderState.length + 1 });
         } else {
           loreOrderState.splice(idx, 1);
-          loreOrderState = loreOrderState.map((item, i) => ({ ...item, order: i + 1 }));
+          loreOrderState = loreOrderState.map((x, i) => ({ ...x, order: i + 1 }));
         }
-        document.querySelectorAll(".lore-button").forEach(button => {
-          const matched = loreOrderState.find(item => item.lore === button.dataset.lore);
-          button.textContent = matched ? `${matched.order}. ${button.dataset.lore}` : button.dataset.lore;
+        document.querySelectorAll(".lore-button").forEach(b => {
+          const match = loreOrderState.find(x => x.lore === b.dataset.lore);
+          b.dataset.order = match ? String(match.order) : "";
+          b.textContent = match ? `${match.order}. ${b.dataset.lore}` : b.dataset.lore;
         });
       });
-      lorePicker.appendChild(btn);
-    });
-  });
 
+      lorePicker.appendChild(btn);
+    }
+  });
   function showTab(tabId) {
     tabContents.forEach(div => { div.style.display = "none"; });
     const tab = document.getElementById(tabId);
@@ -200,27 +223,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
-      loginSection.style.display = "block";
-      homeScreen.style.display = "none";
-      buildList.innerHTML = "";
-      buildSelector.innerHTML = "";
-      authStatus.textContent = "🔒 Please log in";
+      loginSection.style.display = "none";
+      homeScreen.style.display = "block";
+      showTab("build-tab");
+      authStatus.textContent = "Sign in to favorite or post";
+      if (guestNotice) guestNotice.style.display = "block";
+      if (guestAuthBtn) guestAuthBtn.style.display = "inline-block";
+      if (logoutBtn) logoutBtn.style.display = "none";
+      if (postTabBtn) postTabBtn.style.display = "none";
+      if (profileTabBtn) profileTabBtn.style.display = "none";
+      await loadBuilds(true, false);
       return;
     }
+
     loginSection.style.display = "none";
-    const reg = document.getElementById("register-screen");
-    if (reg) reg.style.display = "none";
     homeScreen.style.display = "block";
     showTab("build-tab");
-
+    if (guestNotice) guestNotice.style.display = "none";
+    if (guestAuthBtn) guestAuthBtn.style.display = "none";
+    if (logoutBtn) logoutBtn.style.display = "inline-block";
+    if (postTabBtn) postTabBtn.style.display = "inline-block";
+    if (profileTabBtn) profileTabBtn.style.display = "inline-block";
     const userRef = doc(db, "users", user.uid);
     let userSnap = await getDoc(userRef);
-
     if (!userSnap.exists()) {
-      console.log("No /users/{uid} doc found — checking for legacy doc…");
       const q = query(collection(db, "users"), where("uid", "==", user.uid));
       const oldSnap = await getDocs(q);
-
       if (!oldSnap.empty) {
         const oldData = oldSnap.docs[0].data();
         await setDoc(userRef, {
@@ -229,7 +257,6 @@ document.addEventListener("DOMContentLoaded", () => {
           username: oldData.username || (user.email ? user.email.split("@")[0] : "player"),
           createdAt: oldData.createdAt || Date.now()
         });
-        console.log("✅ Migrated legacy user doc");
       } else {
         const fallbackName = (user.email && user.email.split("@")[0]) || "player";
         await setDoc(userRef, {
@@ -238,15 +265,12 @@ document.addEventListener("DOMContentLoaded", () => {
           username: fallbackName,
           createdAt: Date.now()
         });
-        console.log("✅ Created fresh user doc");
       }
-
-      userSnap = await getDoc(userRef); 
+      userSnap = await getDoc(userRef);
     }
 
     const userData = userSnap.data();
     authStatus.textContent = `✅ Logged in as ${userData.username || userData.email}`;
-
     loadUserBuilds(user.uid);
     setTimeout(() => { refreshBuildsBtn?.click(); }, 200);
   });
@@ -546,7 +570,9 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => { buildSubmitCooldown = false; }, 5000);
 
     const loreMode = loreTreeMode.checked ? "tree" : "json";
-
+    let militaryPaths = {}, clanLore = {};
+    try { militaryPaths = JSON.parse(fs.readFileSync(path.resolve(dataDir,"militarypath.json"))); } catch {}
+    try { clanLore = JSON.parse(fs.readFileSync(path.resolve(dataDir,"lore.json"))); } catch {}
     try {
       await addDoc(collection(db, "builds"), {
         name: buildName,
@@ -598,14 +624,15 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         querySnapshot.forEach((d) => {
           const b = d.data();
+          const upvoteCount = b.upvotes?.length || 0;          
           const card = document.createElement("div");
           card.className = "build-card";
           card.innerHTML = `
-            <h3>${b.name || "Untitled"} (${b.clan})</h3>
-            <p><strong>👤 Username:</strong> ${b.username || "Unknown"}</p>
-            <div class="steps-block">${renderBuildSteps(b.steps || [])}</div>
+            ${b.name || "Untitled"} (${b.clan})
+            <p>👍 ${upvoteCount} Upvote${upvoteCount === 1 ? "" : "s"}</p>            
+            <button class="view-btn" data-action="view" data-name="${enc(b.name)}">View</button>
             <button class="delete-btn" data-id="${d.id}">Delete</button>
-          `;
+            `;
           container.appendChild(card);
         });
         container.querySelectorAll(".delete-btn").forEach(btn => {
@@ -617,6 +644,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 localStorage.removeItem("cachedBuilds");
                 await loadBuilds(true, true);
                 await loadUserBuilds(uid);
+                setTimeout(() => { refreshBuildsBtn?.click(); }, 100);
               } catch (err) {
                 console.error("Delete Error:", err);
                 alert("Error deleting build. See console.");
@@ -644,10 +672,10 @@ document.addEventListener("DOMContentLoaded", () => {
           card.className = "build-card";
           const upvoteCount = b.upvotes?.length || 0;
           card.innerHTML = `
-            <h4>${b.name || "Untitled"} (${b.clan})</h4>
-            <p><strong>👤 Submitted by:</strong> ${b.username || "Unknown"}</p>
+            ${b.name || "Untitled"} (${b.clan})
+            <p>👤 Submitted by: ${b.username || "Unknown"}</p>
             <p>👍 ${upvoteCount} Upvote${upvoteCount === 1 ? "" : "s"}</p>
-            <button class="view-btn" data-action="view" data-name="${enc(b.name)}">View</button>
+            <h4><button class="view-btn" data-action="view" data-name="${enc(b.name)}">View</button></h4>
           `;
           container.appendChild(card);
         });
@@ -709,4 +737,13 @@ document.addEventListener("DOMContentLoaded", () => {
   ipcRenderer.on("app-version", (_, version) => {
     document.body.insertAdjacentHTML("beforeend", `<div style="position:fixed;bottom:10px;right:10px;color:#999;">v${version}</div>`);
   });
+  const howToBtn = document.getElementById("howToSubmitBtn");
+  const howToContent = document.getElementById("howToSubmitContent");
+  if (howToBtn) {
+    howToBtn.addEventListener("click", () => {
+      const isHidden = howToContent.style.display === "none";
+      howToContent.style.display = isHidden ? "block" : "none";
+      howToBtn.textContent = isHidden ? "❌ Hide Instructions" : "❓ How to Submit Builds";
+    });
+  }
 }});

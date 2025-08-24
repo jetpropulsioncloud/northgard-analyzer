@@ -493,3 +493,65 @@ body {
   backdrop-filter: blur(6px);
   border-radius: 0 0 10px 10px;
 }
+/* Headings: gold, but not screaming */
+#post-tab h2 {
+  color: var(--gold);
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+/* Labels: soft gray, bold only when needed */
+#post-tab label,
+#post-tab .input-label {
+  color: var(--subtext);
+  font-weight: 500;
+}
+
+/* Inputs/selects/textarea: neutral by default, gold only on focus */
+#post-tab input,
+#post-tab select,
+#post-tab textarea {
+  background: #1a1a1d;
+  color: var(--text);
+  border: 1px solid #2a2b2e;
+  border-radius: 6px;
+  padding: 8px 10px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+#post-tab input::placeholder,
+#post-tab textarea::placeholder {
+  color: #7a765f;
+}
+#post-tab input:focus,
+#post-tab select:focus,
+#post-tab textarea:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(232,200,115,.25);
+}
+
+/* Collapsible buttons: flat dark, small gold border */
+#post-tab .collapsible {
+  background: #202125;
+  border: 1px solid #2a2b2e;
+  color: var(--text);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-weight: 500;
+}
+#post-tab .collapsible:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/* Situational tags panel: subtle frame */
+#situationalTagsContent {
+  border: 1px solid #2a2b2e;
+  border-radius: 6px;
+  background: #141516;
+  padding: 10px;
+}
+
+/* Lore radio labels: group them tighter */
+#post-tab input[type="radio"] {
+  accent-color: var(--gold);
+}
