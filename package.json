@@ -43,6 +43,9 @@
       "package.json"
     ],
     "asar": true,
+    "extraResources": [
+      { "from": "data", "to": "data" }
+    ],
     "publish": [
       {
         "provider": "github",

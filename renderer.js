@@ -59,8 +59,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const { ipcRenderer } = require("electron");
   const fs = require("fs");
   const path = require("path");
-  const dataDir = path.join(__dirname, "data");
-
+  ///const dataDir = path.join(__dirname, "data");
+  
   const {
     db,
     collection,
@@ -132,7 +132,16 @@ document.addEventListener("DOMContentLoaded", () => {
       loreTreeFrame.style.display = "block";
     }
   });
-
+  function resolveDatadir () {
+    const packagedPath = path.join(process.resourcesPath, "data")
+    try {
+      fs.accessSync(packagedPath);
+      return packagedPath;
+    } catch {
+      return path.join(__dirname, "data")
+    }
+  }
+  const dataDir = resolveDatadir();
   let militaryPaths = {};
   let clanLore = {};
   try {
