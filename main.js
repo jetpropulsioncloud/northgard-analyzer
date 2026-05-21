@@ -266,27 +266,63 @@ function registerOverlayShortcuts() {
     },
     {
       keys: 'CommandOrControl+Alt+J',
-      action: () => scrollBuildWindow(180)
+      action: () => {
+        const win = getBuildWindow();
+
+        if (win) {
+          win.webContents.send('overlay-next-section');
+        }
+      }
     },
     {
       keys: 'CommandOrControl+Alt+K',
-      action: () => scrollBuildWindow(-180)
+      action: () => {
+        const win = getBuildWindow();
+
+        if (win) {
+          win.webContents.send('overlay-prev-section');
+        }
+      }
     },
     {
       keys: 'CommandOrControl+Alt+N',
-      action: () => scrollBuildWindow(500)
+      action: () => {
+        const win = getBuildWindow();
+
+        if (win) {
+          win.webContents.send('overlay-next-section');
+        }
+      }
     },
     {
       keys: 'CommandOrControl+Alt+M',
-      action: () => scrollBuildWindow(-500)
+      action: () => {
+        const win = getBuildWindow();
+
+        if (win) {
+          win.webContents.send('overlay-prev-section');
+        }
+      }
     },
     {
       keys: 'CommandOrControl+Alt+H',
-      action: scrollBuildWindowToTop
+      action: () => {
+        const win = getBuildWindow();
+
+        if (win) {
+          win.webContents.send('overlay-first-section');
+        }
+      }
     },
     {
       keys: 'CommandOrControl+Alt+E',
-      action: scrollBuildWindowToBottom
+      action: () => {
+        const win = getBuildWindow();
+
+        if (win) {
+          win.webContents.send('overlay-last-section');
+        }
+      }
     }
   ];
 

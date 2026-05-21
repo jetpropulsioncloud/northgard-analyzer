@@ -125,29 +125,174 @@
     return "•";
   }
 
-  // Show steps in the build
-  function renderBuildSteps(steps) {
-    return (steps || []).map(step => {
-      if (step.startsWith("#")) {
-        return `<h4 class="phase-header">📅 ${step.slice(1).trim()}</h4>`;
-      }
-      return `<div class="build-step">${getEmojiForStep(step)} ${step}</div>`;
-    }).join("");
+  let currentBuild = null;
+  let buildSections = [];
+  let currentSectionIndex = 0;
+
+  function escapeHtml(value) {
+    return String(value)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
   }
 
-  // Listen for the build data from main
+  function splitBuildIntoSections(steps) {
+    const sections = [];
+    let current = {
+      title: "Build",
+      steps: []
+    };
+
+    (steps || []).forEach(step => {
+      const cleanStep = String(step || "").trim();
+
+      if (!cleanStep) {
+        return;
+      }
+
+      if (cleanStep.startsWith("#")) {
+        if (current.steps.length > 0 || current.title !== "Build") {
+          sections.push(current);
+        }
+
+        current = {
+          title: cleanStep.replace(/^#\s*/, "").trim() || "Section",
+          steps: []
+        };
+
+        return;
+      }
+
+      current.steps.push(cleanStep);
+    });
+
+    if (current.steps.length > 0 || sections.length === 0) {
+      sections.push(current);
+    }
+
+    return sections;
+  }
+
+  function renderSingleStep(step) {
+    return `<div class="build-step">${getEmojiForStep(step)} ${escapeHtml(step)}</div>`;
+  }
+
+  function renderSectionPills() {
+    const nav = document.getElementById("sectionNav");
+
+    if (!nav) {
+      return;
+    }
+
+    nav.innerHTML = buildSections.map((section, index) => {
+      const active = index === currentSectionIndex ? "active" : "";
+      return `<button class="section-pill ${active}" data-section-index="${index}">${escapeHtml(section.title)}</button>`;
+    }).join("");
+
+    nav.querySelectorAll(".section-pill").forEach(button => {
+      button.addEventListener("click", () => {
+        goToSection(Number(button.dataset.sectionIndex));
+      });
+    });
+  }
+
+  function renderCurrentSection() {
+    const panel = document.getElementById("sectionStepPanel");
+    const counter = document.getElementById("sectionCounter");
+
+    if (!panel || !counter || buildSections.length === 0) {
+      return;
+    }
+
+    const section = buildSections[currentSectionIndex];
+
+    panel.innerHTML = `
+      <h3 class="current-section-title">📅 ${escapeHtml(section.title)}</h3>
+      ${section.steps.length > 0
+        ? section.steps.map(renderSingleStep).join("")
+        : `<p><em>No steps listed for this section.</em></p>`}
+    `;
+
+    counter.textContent = `${currentSectionIndex + 1} / ${buildSections.length}`;
+    renderSectionPills();
+  }
+
+  function goToSection(index) {
+    if (buildSections.length === 0) {
+      return;
+    }
+
+    if (index < 0) {
+      currentSectionIndex = 0;
+    } else if (index >= buildSections.length) {
+      currentSectionIndex = buildSections.length - 1;
+    } else {
+      currentSectionIndex = index;
+    }
+
+    renderCurrentSection();
+  }
+
+  function nextSection() {
+    goToSection(currentSectionIndex + 1);
+  }
+
+  function previousSection() {
+    goToSection(currentSectionIndex - 1);
+  }
+
+  ipcRenderer.on("overlay-next-section", () => {
+    nextSection();
+  });
+
+  ipcRenderer.on("overlay-prev-section", () => {
+    previousSection();
+  });
+
+  ipcRenderer.on("overlay-first-section", () => {
+    goToSection(0);
+  });
+
+  ipcRenderer.on("overlay-last-section", () => {
+    goToSection(buildSections.length - 1);
+  });
+
   ipcRenderer.on('load-build', (event, build) => {
+    currentBuild = build;
+    buildSections = splitBuildIntoSections(build.steps || []);
+    currentSectionIndex = 0;
+
     const tags = (build.situationalTags || []).join(', ') || 'None';
+
     const html = `
-      <h2>${build.name} (${build.clan})</h2>
-      ${build.militaryPath ? `<p><strong>⚔️ Military Path:</strong> ${build.militaryPath}</p>` : ''}
+      <h2>${escapeHtml(build.name)} (${escapeHtml(build.clan)})</h2>
+      ${build.militaryPath ? `<p><strong>⚔️ Military Path:</strong> ${escapeHtml(build.militaryPath)}</p>` : ''}
       <button id="toggleLoreBtn">📜 Show Lore</button>
       <div id="loreViewer" style="display:none; margin-top: 16px;"></div>
-      <p><strong>🌍 Tags:</strong> ${tags}</p>
+      <p><strong>🌍 Tags:</strong> ${escapeHtml(tags)}</p>
       <hr>
-      <div>${renderBuildSteps(build.steps)}</div>
+
+      <div id="sectionNav" class="section-nav"></div>
+
+      <div class="section-controls">
+        <button id="prevSectionBtn">◀ Prev</button>
+        <div id="sectionCounter" class="section-counter"></div>
+        <button id="nextSectionBtn">Next ▶</button>
+      </div>
+
+      <div id="sectionStepPanel"></div>
+
+      <div class="overlay-help">
+        Hotkeys: Ctrl+Alt+J = next section · Ctrl+Alt+K = previous section · Ctrl+Alt+H = first · Ctrl+Alt+E = last · Alt+L = lock/unlock
+      </div>
     `;
+
     document.getElementById('buildContent').innerHTML = html;
+
+    document.getElementById("prevSectionBtn").addEventListener("click", previousSection);
+    document.getElementById("nextSectionBtn").addEventListener("click", nextSection);
 
     const toggleLoreBtn = document.getElementById("toggleLoreBtn");
     const loreViewer = document.getElementById("loreViewer");
@@ -162,6 +307,8 @@
         toggleLoreBtn.textContent = "📜 Show Lore";
       }
     });
+
+    renderCurrentSection();
   });
 
   // Show the lore tree in read-only mode

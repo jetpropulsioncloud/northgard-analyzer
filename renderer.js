@@ -215,14 +215,23 @@ document.addEventListener("DOMContentLoaded", () => {
       showTab(tabBtn.getAttribute("data-tab"));
       return;
     }
+
     const actionBtn = e.target.closest("button[data-action]");
     if (actionBtn) {
       const action = actionBtn.dataset.action;
-      const name = dec(actionBtn.dataset.name || "");
-      if (action === "upvote" && name) upvoteBuild(name);
-      if (action === "view" && name) openBuildInWindow(name);
+      const buildId = dec(actionBtn.dataset.id || "");
+
+      if (action === "upvote" && buildId) {
+        upvoteBuild(buildId);
+      }
+
+      if (action === "view" && buildId) {
+        openBuildInWindow(buildId);
+      }
+
       return;
     }
+
     const closeBtn = e.target.closest(".js-close");
     if (closeBtn) {
       ipcRenderer.send("request-app-close");
@@ -367,12 +376,18 @@ document.addEventListener("DOMContentLoaded", () => {
   function updateBuildSelector(filteredData) {
     buildSelector.innerHTML = "";
     buildList.innerHTML = "";
-    for (const buildName in filteredData) {
-      const build = filteredData[buildName];
-      if (!build || !Array.isArray(build.steps)) continue;
+
+    for (const buildId in filteredData) {
+      const build = filteredData[buildId];
+
+      if (!build || !Array.isArray(build.steps)) {
+        continue;
+      }
+
+      const buildName = build.name || "Untitled";
 
       const option = document.createElement("option");
-      option.value = buildName;
+      option.value = buildId;
       option.textContent = buildName;
       buildSelector.appendChild(option);
 
@@ -381,7 +396,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const tagText = (build.situationalTags || []).join(", ") || "None";
       const isOwnBuild = auth.currentUser?.uid === build.userID;
-      const canUpvote = !isOwnBuild;
+      const canUpvote = auth.currentUser && !isOwnBuild;
       const upvoteCount = build.upvotes?.length || 0;
 
       const html = `
@@ -389,11 +404,14 @@ document.addEventListener("DOMContentLoaded", () => {
         <p><strong>👤 Submitted by:</strong> ${build.username || "Unknown"}</p>
         <p><strong>Tags:</strong> ${tagText}</p>
         ${canUpvote
-          ? `<button class="upvote-btn" data-action="upvote" data-name="${enc(buildName)}">🔼 Upvote</button>`
-          : `<em>Can't upvote own build</em>`}
+          ? `<button class="upvote-btn" data-action="upvote" data-id="${enc(buildId)}">🔼 Upvote</button>`
+          : isOwnBuild
+            ? `<em>Can't upvote own build</em>`
+            : `<em>Sign in to upvote</em>`}
         <p>👍 ${upvoteCount} Upvote${upvoteCount === 1 ? "" : "s"}</p>
-        <button class="view-btn" data-action="view" data-name="${enc(buildName)}">View</button>
+        <button class="view-btn" data-action="view" data-id="${enc(buildId)}">View</button>
       `;
+
       preview.innerHTML = html;
       buildList.appendChild(preview);
     }
@@ -402,19 +420,40 @@ document.addEventListener("DOMContentLoaded", () => {
   window.loadBuilds = async function (forceRefresh = false, skipInitialDisplay = false) {
     if (!forceRefresh) {
       const cached = localStorage.getItem("cachedBuilds");
+
       if (cached) {
-        buildData = JSON.parse(cached);
-        if (!skipInitialDisplay) updateBuildSelector(buildData);
-        return;
+        try {
+          const parsed = JSON.parse(cached);
+          const cacheLooksNew = Object.values(parsed).every(build => build && build.docId);
+
+          if (cacheLooksNew) {
+            buildData = parsed;
+
+            if (!skipInitialDisplay) {
+              updateBuildSelector(buildData);
+            }
+
+            return;
+          }
+
+          localStorage.removeItem("cachedBuilds");
+        } catch {
+          localStorage.removeItem("cachedBuilds");
+        }
       }
     }
+
     const querySnapshot = await getDocs(collection(db, "builds"));
     buildData = {};
+
     querySnapshot.forEach((d) => {
       const b = d.data();
-      buildData[b.name] = {
-        steps: b.steps,
-        clan: b.clan,
+
+      buildData[d.id] = {
+        docId: d.id,
+        name: b.name || "Untitled",
+        steps: b.steps || [],
+        clan: b.clan || "",
         loreOrder: b.loreOrder || [],
         loreMode: b.loreMode || "json",
         militaryPath: b.militaryPath || "",
@@ -424,10 +463,13 @@ document.addEventListener("DOMContentLoaded", () => {
         userID: b.userID || ""
       };
     });
-    localStorage.setItem("cachedBuilds", JSON.stringify(buildData));
-    if (!skipInitialDisplay) updateBuildSelector(buildData);
-  };
 
+    localStorage.setItem("cachedBuilds", JSON.stringify(buildData));
+
+    if (!skipInitialDisplay) {
+      updateBuildSelector(buildData);
+    }
+  };
   clanFilter.addEventListener("change", () => {
     const selectedClan = clanFilter.value;
     if (selectedClan === "All") {
@@ -459,14 +501,30 @@ document.addEventListener("DOMContentLoaded", () => {
     const username = document.getElementById("reg-username").value.trim();
     const email = document.getElementById("reg-email").value.trim();
     const password = document.getElementById("reg-password").value;
+
     if (!username || !email || !password) {
       document.getElementById("registerStatus").textContent = "Fill in all fields.";
       return;
     }
+
     try {
+      const usernameCheck = await getDocs(query(collection(db, "users"), where("username", "==", username)));
+
+      if (!usernameCheck.empty) {
+        document.getElementById("registerStatus").textContent = "❌ Username already taken.";
+        return;
+      }
+
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      await addDoc(collection(db, "users"), { uid: user.uid, username, email });
+
+      await setDoc(doc(db, "users", user.uid), {
+        uid: user.uid,
+        username,
+        email,
+        createdAt: Date.now()
+      });
+
       document.getElementById("registerStatus").textContent = "✅ Registered!";
     } catch (err) {
       document.getElementById("registerStatus").textContent = `❌ ${err.message}`;
@@ -623,37 +681,63 @@ document.addEventListener("DOMContentLoaded", () => {
   async function loadUserBuilds(uid) {
     const container = profileBuildsContainer;
     container.innerHTML = "<p>Loading your builds...</p>";
+
     try {
       const buildsRef = collection(db, "builds");
       const qMine = query(buildsRef, where("userID", "==", uid));
       const querySnapshot = await getDocs(qMine);
+
       container.innerHTML = "";
+
       if (querySnapshot.empty) {
         container.innerHTML = "<p>No builds yet</p>";
       } else {
         querySnapshot.forEach((d) => {
           const b = d.data();
-          const upvoteCount = b.upvotes?.length || 0;          
+          const upvoteCount = b.upvotes?.length || 0;
+
+          buildData[d.id] = {
+            docId: d.id,
+            name: b.name || "Untitled",
+            steps: b.steps || [],
+            clan: b.clan || "",
+            loreOrder: b.loreOrder || [],
+            loreMode: b.loreMode || "json",
+            militaryPath: b.militaryPath || "",
+            situationalTags: b.situationalTags || [],
+            username: b.username || "Unknown",
+            upvotes: b.upvotes || [],
+            userID: b.userID || ""
+          };
+
           const card = document.createElement("div");
           card.className = "build-card";
           card.innerHTML = `
             ${b.name || "Untitled"} (${b.clan})
-            <p>👍 ${upvoteCount} Upvote${upvoteCount === 1 ? "" : "s"}</p>            
-            <button class="view-btn" data-action="view" data-name="${enc(b.name)}">View</button>
-            <button class="delete-btn" data-id="${d.id}">Delete</button>
-            `;
+            <p>👍 ${upvoteCount} Upvote${upvoteCount === 1 ? "" : "s"}</p>
+            <button class="view-btn" data-action="view" data-id="${enc(d.id)}">View</button>
+            <button class="delete-btn" data-id="${enc(d.id)}">Delete</button>
+          `;
+
           container.appendChild(card);
         });
+
         container.querySelectorAll(".delete-btn").forEach(btn => {
           btn.addEventListener("click", async () => {
-            const id = btn.dataset.id;
+            const id = dec(btn.dataset.id);
+
             if (confirm("Delete this build?")) {
               try {
                 await deleteDoc(doc(db, "builds", id));
+                delete buildData[id];
                 localStorage.removeItem("cachedBuilds");
+
                 await loadBuilds(true, true);
                 await loadUserBuilds(uid);
-                setTimeout(() => { refreshBuildsBtn?.click(); }, 100);
+
+                setTimeout(() => {
+                  refreshBuildsBtn?.click();
+                }, 100);
               } catch (err) {
                 console.error("Delete Error:", err);
                 alert("Error deleting build. See console.");
@@ -665,10 +749,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const allBuildsSnap = await getDocs(buildsRef);
       const upvoted = [];
+
       allBuildsSnap.forEach(d => {
         const b = d.data();
+
         if ((b.upvotes || []).includes(uid) && b.userID !== uid) {
-          upvoted.push({ ...b, docId: d.id });
+          const normalizedBuild = {
+            docId: d.id,
+            name: b.name || "Untitled",
+            steps: b.steps || [],
+            clan: b.clan || "",
+            loreOrder: b.loreOrder || [],
+            loreMode: b.loreMode || "json",
+            militaryPath: b.militaryPath || "",
+            situationalTags: b.situationalTags || [],
+            username: b.username || "Unknown",
+            upvotes: b.upvotes || [],
+            userID: b.userID || ""
+          };
+
+          buildData[d.id] = normalizedBuild;
+          upvoted.push(normalizedBuild);
         }
       });
 
@@ -676,16 +777,19 @@ document.addEventListener("DOMContentLoaded", () => {
         const upvotedHeader = document.createElement("h3");
         upvotedHeader.textContent = "⭐ Builds You’ve Upvoted";
         container.appendChild(upvotedHeader);
+
         upvoted.forEach(b => {
           const card = document.createElement("div");
           card.className = "build-card";
           const upvoteCount = b.upvotes?.length || 0;
+
           card.innerHTML = `
             ${b.name || "Untitled"} (${b.clan})
             <p>👤 Submitted by: ${b.username || "Unknown"}</p>
             <p>👍 ${upvoteCount} Upvote${upvoteCount === 1 ? "" : "s"}</p>
-            <h4><button class="view-btn" data-action="view" data-name="${enc(b.name)}">View</button></h4>
+            <h4><button class="view-btn" data-action="view" data-id="${enc(b.docId)}">View</button></h4>
           `;
+
           container.appendChild(card);
         });
       }
@@ -695,42 +799,90 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function openBuildInWindow(name) {
-    const build = buildData[name];
-    if (!build) return;
-    const buildWithName = { ...build, name };
+  function openBuildInWindow(buildId) {
+    const build = buildData[buildId];
+
+    if (!build) {
+      alert("Build not found. Try refreshing builds.");
+      return;
+    }
+
+    const buildWithName = {
+      ...build,
+      name: build.name || "Untitled",
+      docId: buildId
+    };
+
     ipcRenderer.send("open-build-window", buildWithName);
   }
+
   window.openBuildInWindow = openBuildInWindow;
 
-  async function upvoteBuild(name) {
+  async function upvoteBuild(buildId) {
     const user = auth.currentUser;
-    if (!user) { alert("You must be logged in to upvote!"); return; }
-    const build = buildData[name];
-    if (!build) { alert("Build not found."); return; }
-    const refQ = query(collection(db, "builds"), where("name", "==", name));
-    const snap = await getDocs(refQ);
-    if (snap.empty) { alert("Build not found."); return; }
-    const docRef = snap.docs[0].ref;
-    const currentUpvotes = build.upvotes || [];
-    if (currentUpvotes.includes(user.uid)) { alert("You already upvoted this build!"); return; }
+
+    if (!user) {
+      alert("You must be logged in to upvote!");
+      return;
+    }
+
+    const build = buildData[buildId];
+
+    if (!build) {
+      alert("Build not found. Try refreshing builds.");
+      return;
+    }
+
+    if (build.userID === user.uid) {
+      alert("You cannot upvote your own build.");
+      return;
+    }
+
+    const docRef = doc(db, "builds", buildId);
+    const freshSnap = await getDoc(docRef);
+
+    if (!freshSnap.exists()) {
+      alert("Build not found.");
+      return;
+    }
+
+    const freshBuild = freshSnap.data();
+    const currentUpvotes = freshBuild.upvotes || [];
+
+    if (currentUpvotes.includes(user.uid)) {
+      alert("You already upvoted this build!");
+      return;
+    }
+
     try {
       const updatedVotes = [...currentUpvotes, user.uid];
-      await updateDoc(docRef, { upvotes: updatedVotes });
+
+      await updateDoc(docRef, {
+        upvotes: updatedVotes
+      });
+
       localStorage.removeItem("cachedBuilds");
       await loadBuilds(true, true);
+
       const selectedClan = clanFilter.value;
       const filtered = selectedClan === "All"
         ? buildData
         : Object.fromEntries(Object.entries(buildData).filter(([_, data]) => data.clan === selectedClan));
+
       updateBuildSelector(filtered);
+
+      const currentUser = auth.currentUser;
+
+      if (currentUser) {
+        await loadUserBuilds(currentUser.uid);
+      }
     } catch (err) {
       console.error("Upvote error:", err);
       alert("Error upvoting. Try again.");
     }
   }
-  window.upvoteBuild = upvoteBuild;
 
+  window.upvoteBuild = upvoteBuild;
   const toggleBtn = document.getElementById("toggleSituationalTags");
   const situationalContent = document.getElementById("situationalTagsContent");
   if (toggleBtn && situationalContent) {
