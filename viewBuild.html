@@ -213,5 +213,77 @@
     });
   });
 </script>
+<script>
+  (() => {
+    const overlayScrollIpc = require('electron').ipcRenderer;
+
+    function getScrollableElement() {
+      const elements = Array.from(document.querySelectorAll('body, body *'));
+
+      const scrollableElements = elements.filter(element => {
+        const style = window.getComputedStyle(element);
+        const canScroll = element.scrollHeight > element.clientHeight + 20;
+        const notHidden = style.overflowY !== 'hidden';
+
+        return canScroll && notHidden;
+      });
+
+      scrollableElements.sort((a, b) => {
+        const aScroll = a.scrollHeight - a.clientHeight;
+        const bScroll = b.scrollHeight - b.clientHeight;
+
+        return bScroll - aScroll;
+      });
+
+      return scrollableElements[0] || document.scrollingElement || document.documentElement;
+    }
+
+    function scrollOverlay(amount) {
+      const element = getScrollableElement();
+
+      element.scrollBy({
+        top: amount,
+        left: 0,
+        behavior: 'smooth'
+      });
+    }
+
+    function scrollOverlayTo(position) {
+      const element = getScrollableElement();
+
+      element.scrollTo({
+        top: position,
+        left: 0,
+        behavior: 'smooth'
+      });
+    }
+
+    overlayScrollIpc.on('overlay-scroll-down', () => {
+      scrollOverlay(180);
+    });
+
+    overlayScrollIpc.on('overlay-scroll-up', () => {
+      scrollOverlay(-180);
+    });
+
+    overlayScrollIpc.on('overlay-scroll-page-down', () => {
+      scrollOverlay(500);
+    });
+
+    overlayScrollIpc.on('overlay-scroll-page-up', () => {
+      scrollOverlay(-500);
+    });
+
+    overlayScrollIpc.on('overlay-go-top', () => {
+      scrollOverlayTo(0);
+    });
+
+    overlayScrollIpc.on('overlay-go-bottom', () => {
+      const element = getScrollableElement();
+
+      scrollOverlayTo(element.scrollHeight);
+    });
+  })();
+</script>
 </body>
 </html>
