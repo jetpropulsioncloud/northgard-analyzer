@@ -89,7 +89,126 @@ document.addEventListener("DOMContentLoaded", () => {
   let buildData = {};
   let buildSubmitCooldown = false;
   let loreOrderState = [];
+    const standardStepTypes = [
+    "Scout",
+    "Eco",
+    "Food",
+    "Wood",
+    "Krowns",
+    "Lore",
+    "Military",
+    "Defense",
+    "Colonize",
+    "Build",
+    "Upgrade",
+    "Trade",
+    "Warning",
+    "Goal"
+  ];
 
+  const stepFormatterStyle = document.createElement("style");
+  stepFormatterStyle.textContent = `
+    .step-helper {
+      display: flex;
+      gap: 6px;
+      margin: 6px 0 12px 0;
+      align-items: center;
+    }
+
+    .step-helper select,
+    .step-helper input {
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #555;
+      background: #111;
+      color: #fff;
+      font-size: 13px;
+    }
+
+    .step-helper input {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .step-helper button {
+      padding: 6px 10px;
+      border: none;
+      border-radius: 6px;
+      background: #5c4324;
+      color: #fff;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .step-helper button:hover {
+      background: #7a5a31;
+    }
+
+    .winter-step-helper-wrap {
+      margin-top: 6px;
+    }
+
+    .standard-format-note {
+      font-size: 12px;
+      color: #aaa;
+      margin: 4px 0 8px 0;
+    }
+  `;
+  document.head.appendChild(stepFormatterStyle);
+
+  function renderStepTypeOptions() {
+    return standardStepTypes
+      .map(type => `<option value="${type}">${type}</option>`)
+      .join("");
+  }
+
+  function appendFormattedStep(targetId, typeId, textId) {
+    const target = document.getElementById(targetId);
+    const typeSelect = document.getElementById(typeId);
+    const textInput = document.getElementById(textId);
+
+    if (!target || !typeSelect || !textInput) {
+      return;
+    }
+
+    const stepText = textInput.value.trim();
+
+    if (!stepText) {
+      return;
+    }
+
+    const line = `[${typeSelect.value}] ${stepText}`;
+    const current = target.value.trim();
+
+    target.value = current ? `${current}\n${line}` : line;
+    textInput.value = "";
+    textInput.focus();
+  }
+
+  function wireStepFormatter(year, suffix = "") {
+    const targetId = suffix ? `steps-${year}-${suffix}` : `steps-${year}`;
+    const typeId = suffix ? `step-type-${year}-${suffix}` : `step-type-${year}`;
+    const textId = suffix ? `step-text-${year}-${suffix}` : `step-text-${year}`;
+    const buttonId = suffix ? `add-step-${year}-${suffix}` : `add-step-${year}`;
+
+    const button = document.getElementById(buttonId);
+    const input = document.getElementById(textId);
+
+    if (button) {
+      button.addEventListener("click", () => {
+        appendFormattedStep(targetId, typeId, textId);
+      });
+    }
+
+    if (input) {
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          appendFormattedStep(targetId, typeId, textId);
+        }
+      });
+    }
+  }
   function enc(v) { return encodeURIComponent(String(v)); }
   function dec(v) { try { return decodeURIComponent(String(v)); } catch { return v; } }
 
@@ -314,19 +433,48 @@ document.addEventListener("DOMContentLoaded", () => {
     wrapper.className = "year-block";
     wrapper.innerHTML = `
       <h4>Year ${year}</h4>
+
+      <p class="standard-format-note">
+        Add steps in the standard format: [Category] Action
+      </p>
+
       <textarea id="steps-${year}" rows="4" placeholder="Steps for ${year}..."></textarea>
+
+      <div class="step-helper">
+        <select id="step-type-${year}">
+          ${renderStepTypeOptions()}
+        </select>
+        <input id="step-text-${year}" type="text" placeholder="Example: Build Woodcutter's Lodge on first forest">
+        <button type="button" id="add-step-${year}">Add Step</button>
+      </div>
+
       <label>
         <input type="checkbox" id="toggle-winter-${year}" />
         Add Winter Steps for ${year}
       </label>
-      <textarea id="steps-${year}-winter" style="display: none;" rows="3" placeholder="Winter ${year} steps..."></textarea>
+
+      <div id="winter-helper-${year}" class="winter-step-helper-wrap" style="display: none;">
+        <textarea id="steps-${year}-winter" rows="3" placeholder="Winter ${year} steps..."></textarea>
+
+        <div class="step-helper">
+          <select id="step-type-${year}-winter">
+            ${renderStepTypeOptions()}
+          </select>
+          <input id="step-text-${year}-winter" type="text" placeholder="Example: Do not over-colonize before winter">
+          <button type="button" id="add-step-${year}-winter">Add Winter Step</button>
+        </div>
+      </div>
     `;
     yearlyContainer.appendChild(wrapper);
+
+    wireStepFormatter(year);
+    wireStepFormatter(year, "winter");
   }
 
   for (let year = 800; year <= 804; year++) {
     const toggle = document.getElementById(`toggle-winter-${year}`);
-    const winterBox = document.getElementById(`steps-${year}-winter`);
+    const winterBox = document.getElementById(`winter-helper-${year}`);
+
     toggle.addEventListener("change", () => {
       winterBox.style.display = toggle.checked ? "block" : "none";
     });
@@ -345,6 +493,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function getEmojiForStep(step) {
     const lower = step.toLowerCase();
+    if (s.includes("[scout]")) return "🧭";
+    if (s.includes("[eco]")) return "📈";
+    if (s.includes("[food]")) return "🍖";
+    if (s.includes("[wood]")) return "🌲";
+    if (s.includes("[krowns]")) return "🪙";
+    if (s.includes("[lore]")) return "📜";
+    if (s.includes("[military]")) return "⚔️";
+    if (s.includes("[defense]")) return "🛡️";
+    if (s.includes("[colonize]")) return "📍";
+    if (s.includes("[build]")) return "🏗️";
+    if (s.includes("[upgrade]")) return "⬆️";
+    if (s.includes("[trade]")) return "🏦";
+    if (s.includes("[warning]")) return "⚠️";
+    if (s.includes("[goal]")) return "✅";
     if (lower.includes("wood") || lower.includes("lodge")) return "🌲";
     if (lower.includes("house")) return "🏠";
     if (lower.includes("scout")) return "🧭";
