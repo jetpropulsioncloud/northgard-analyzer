@@ -10,7 +10,8 @@
     "start": "electron-forge start",
     "dist": "electron-builder -w",
     "build": "electron-builder -w",
-    "publish": "electron-builder -w -p always"
+    "publish": "electron-builder -w -p always",
+    "test": "node --test"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.8.1",
@@ -35,6 +36,8 @@
       "index.html",
       "viewBuild.html",
       "renderer.js",
+      "safeHtml.js",
+      "lore-tree.html",
       "main.js",
       "preload.js",
       "style.css",
@@ -44,7 +47,10 @@
     ],
     "asar": true,
     "extraResources": [
-      { "from": "data", "to": "data" }
+      {
+        "from": "data",
+        "to": "data"
+      }
     ],
     "publish": [
       {
