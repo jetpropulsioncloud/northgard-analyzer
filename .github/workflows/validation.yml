@@ -53,5 +53,5 @@ jobs:
           if (-not $asar) { throw "Packaged app.asar not found" }
           $listing = & npx asar list $asar.FullName
           if ($LASTEXITCODE -ne 0) { throw "Could not inspect app.asar" }
-          if (-not ($listing | Where-Object { $_ -match '(^|/)lore-tree\.html$' })) { throw "lore-tree.html missing from package" }
-          if (-not ($listing | Where-Object { $_ -match '(^|/)safeHtml\.js$' })) { throw "safeHtml.js missing from package" }
+          if (-not ($listing | Where-Object { $_ -match '(^|[\\/])lore-tree\.html$' })) { throw "lore-tree.html missing from package" }
+          if (-not ($listing | Where-Object { $_ -match '(^|[\\/])safeHtml\.js$' })) { throw "safeHtml.js missing from package" }
