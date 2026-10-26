@@ -9,6 +9,14 @@ const timeout = setTimeout(() => {
   app.exit(1);
 }, 30000);
 
+async function waitFor(win, expression, message) {
+  for (let attempt = 0; attempt < 50; attempt++) {
+    if (await win.webContents.executeJavaScript(expression)) return;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  throw new Error(message);
+}
+
 async function inspectWindow(preloadFile, globalName, expectedMethod) {
   const win = new BrowserWindow({
     show: false,
@@ -48,7 +56,29 @@ app.whenReady().then(async () => {
     );
     assert.equal(noSend, true);
 
-    console.log('Isolated Electron main/overlay bridges launched successfully');
+    // Exercise the real overlay page, not just a minimal bridge fixture.
+    await overlayWindow.loadFile(path.join(__dirname, '..', 'viewBuild.html'));
+    await waitFor(overlayWindow, "document.body.dataset.overlayReady === 'true'", 'Overlay page did not initialize');
+    overlayWindow.webContents.send('load-build', {
+      name: 'CI Smoke Build',
+      clan: 'Fenrir',
+      steps: ['# 800', 'Build Scout Camp', '# 801', 'Build House'],
+      situationalTags: [],
+      loreOrder: []
+    });
+    await waitFor(
+      overlayWindow,
+      "document.querySelector('#buildContent h2')?.textContent.includes('CI Smoke Build') === true",
+      'Overlay did not render the supplied build'
+    );
+    overlayWindow.webContents.send('overlay-next-section');
+    await waitFor(
+      overlayWindow,
+      "document.querySelector('.current-section-title')?.textContent.includes('801') === true",
+      'Overlay section hotkey event did not navigate'
+    );
+
+    console.log('Isolated Electron bridges and real overlay page passed smoke checks');
     clearTimeout(timeout);
     app.exit(0);
   } catch (error) {
