@@ -70,3 +70,33 @@ jobs:
           path: dist/*.exe
           if-no-files-found: error
           retention-days: 14
+  macos-dmg:
+    name: macOS DMGs (Apple Silicon and Intel)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run unit tests
+        run: npm test
+      - name: Build unsigned DMGs for both Mac architectures
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --mac dmg --x64 --arm64 --publish never
+      - name: Verify both architecture-specific DMGs exist
+        shell: bash
+        run: |
+          ls -lh dist/*.dmg
+          test "$(find dist -maxdepth 1 -name '*.dmg' | wc -l | tr -d ' ')" -eq 2
+          test "$(find dist -maxdepth 1 -name '*arm64.dmg' | wc -l | tr -d ' ')" -eq 1
+      - name: Save Mac DMGs for manual Northgard testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: longhouse-macos-pr-${{ github.run_number }}
+          path: dist/*.dmg
+          if-no-files-found: error
+          retention-days: 14

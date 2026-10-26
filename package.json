@@ -62,6 +62,11 @@
       "target": "nsis",
       "icon": "assets/longhouse-icon.ico"
     },
+    "mac": {
+      "target": "dmg",
+      "identity": null,
+      "hardenedRuntime": false
+    },
     "nsis": {
       "oneClick": false,
       "perMachine": true,
