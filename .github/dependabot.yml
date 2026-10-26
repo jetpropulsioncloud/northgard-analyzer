@@ -1,0 +1,18 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 15
+    groups:
+      development-dependencies:
+        dependency-type: development
+        update-types:
+          - patch
+          - minor
+      production-dependencies:
+        dependency-type: production
+        update-types:
+          - patch
+          - minor

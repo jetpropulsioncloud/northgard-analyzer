@@ -348,7 +348,7 @@
       container.appendChild(iframe);
       iframe.style.pointerEvents = "none";
     } else {
-      const items = order.map((l, i) => `<li>${i + 1}. ${l}</li>`).join('');
+      const items = order.map((l, i) => `<li>${i + 1}. ${escapeHtml(l)}</li>`).join('');
       container.innerHTML = `<div><strong>📜 Lore Order:</strong><ul>${items}</ul></div>`;
     }
   }
