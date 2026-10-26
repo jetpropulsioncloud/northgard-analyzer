@@ -86,6 +86,29 @@ function createWindow() {
   });
 }
 
+
+// Only the trusted main application window may request privileged operations.
+// Never accept IPC from child frames or the build viewer.
+function isTrustedMainSender(event) {
+  return Boolean(
+    mainWindow &&
+    !mainWindow.isDestroyed() &&
+    event.sender === mainWindow.webContents &&
+    event.senderFrame === mainWindow.webContents.mainFrame &&
+    event.sender.getURL().startsWith('file://') &&
+    event.sender.getURL().split(/[?#]/)[0].endsWith('/index.html')
+  );
+}
+
+function isValidBuildPayload(build) {
+  if (!build || typeof build !== 'object' || Array.isArray(build)) return false;
+  if (typeof build.name !== 'string' || build.name.length > 200) return false;
+  if (!Array.isArray(build.steps) || build.steps.length > 1000) return false;
+  if (!build.steps.every(step => typeof step === 'string' && step.length <= 2000)) return false;
+  if (build.clan != null && (typeof build.clan !== 'string' || build.clan.length > 100)) return false;
+  return true;
+}
+
 function getBuildWindow() {
   if (!buildWin || buildWin.isDestroyed()) {
     return null;
@@ -350,13 +373,15 @@ app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
 
-ipcMain.on('request-app-close', () => {
+ipcMain.on('request-app-close', (event) => {
+  if (!isTrustedMainSender(event)) return;
   if (mainWindow) {
     mainWindow.close();
   }
 });
 
-ipcMain.on('reset-window-focus', () => {
+ipcMain.on('reset-window-focus', (event) => {
+  if (!isTrustedMainSender(event)) return;
   const win = BrowserWindow.getFocusedWindow();
 
   if (win) {
@@ -365,23 +390,31 @@ ipcMain.on('reset-window-focus', () => {
   }
 });
 
-ipcMain.on('overlay-lock', () => {
+ipcMain.on('overlay-lock', (event) => {
+  if (!isTrustedMainSender(event)) return;
   setOverlayLocked(true);
 });
 
-ipcMain.on('overlay-unlock', () => {
+ipcMain.on('overlay-unlock', (event) => {
+  if (!isTrustedMainSender(event)) return;
   setOverlayLocked(false);
 });
 
-ipcMain.on('overlay-toggle-lock', () => {
+ipcMain.on('overlay-toggle-lock', (event) => {
+  if (!isTrustedMainSender(event)) return;
   toggleOverlayLock();
 });
 
-ipcMain.on('overlay-toggle-visibility', () => {
+ipcMain.on('overlay-toggle-visibility', (event) => {
+  if (!isTrustedMainSender(event)) return;
   toggleOverlayVisibility();
 });
 
 ipcMain.on('open-build-window', (event, buildData) => {
+  if (!isTrustedMainSender(event) || !isValidBuildPayload(buildData)) {
+    log.warn('Rejected invalid or untrusted open-build-window IPC request');
+    return;
+  }
   if (buildWin && !buildWin.isDestroyed()) {
     buildWin.close();
   }
