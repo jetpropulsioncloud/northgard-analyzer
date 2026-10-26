@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
 const path = require('path');
+const fs = require('node:fs/promises');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
 const { isTrustedMainSender, isValidBuildPayload } = require('./ipcSecurity');
@@ -30,8 +31,9 @@ function createWindow() {
     alwaysOnTop: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: true,
-      contextIsolation: false
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true
     }
   });
 
@@ -352,6 +354,21 @@ app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
 
+ipcMain.handle('load-static-data', async event => {
+  if (!isTrustedMainSender(event, mainWindow, path.join(__dirname, 'index.html'))) {
+    throw new Error('Untrusted static-data request');
+  }
+
+  const dataDir = app.isPackaged
+    ? path.join(process.resourcesPath, 'data')
+    : path.join(__dirname, 'data');
+  const [militaryPaths, clanLore] = await Promise.all([
+    fs.readFile(path.join(dataDir, 'militarypath.json'), 'utf8'),
+    fs.readFile(path.join(dataDir, 'lore.json'), 'utf8')
+  ]);
+  return { militaryPaths: JSON.parse(militaryPaths), clanLore: JSON.parse(clanLore) };
+});
+
 ipcMain.on('request-app-close', (event) => {
   if (!isTrustedMainSender(event, mainWindow, path.join(__dirname, 'index.html'))) return;
   if (mainWindow) {
@@ -416,9 +433,10 @@ ipcMain.on('open-build-window', (event, buildData) => {
     hasShadow: false,
     show: false,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: true,
-      contextIsolation: false
+      preload: path.join(__dirname, 'overlayPreload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true
     }
   });
 

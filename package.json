@@ -38,6 +38,7 @@
       "lore-tree.html",
       "main.js",
       "preload.js",
+      "overlayPreload.js",
       "style.css",
       "assets/**/*",
       "!**/*.txt",
@@ -60,6 +61,11 @@
     "win": {
       "target": "nsis",
       "icon": "assets/longhouse-icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "identity": null,
+      "hardenedRuntime": false
     },
     "nsis": {
       "oneClick": false,

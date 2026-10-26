@@ -32,6 +32,8 @@ jobs:
           node --check renderer.js
           node --check safeHtml.js
           node --check ipcSecurity.js
+          node --check preload.js
+          node --check overlayPreload.js
       - name: Audit all dependencies (all severity levels)
         run: npm audit --audit-level=low
   windows-smoke:
@@ -45,6 +47,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - name: Launch sandboxed Electron main and overlay smoke windows
+        run: npx electron scripts/electronSmoke.js
       - name: Package Windows app without publishing
         run: npx electron-builder --win --publish never
       - name: Verify packaged lore page
@@ -57,3 +61,42 @@ jobs:
           if (-not ($listing | Where-Object { $_ -match '(^|[\\/])lore-tree\.html$' })) { throw "lore-tree.html missing from package" }
           if (-not ($listing | Where-Object { $_ -match '(^|[\\/])safeHtml\.js$' })) { throw "safeHtml.js missing from package" }
           if (-not ($listing | Where-Object { $_ -match '(^|[\\/])ipcSecurity\.js$' })) { throw "ipcSecurity.js missing from package" }
+          if (-not ($listing | Where-Object { $_ -match '(^|[\\/])preload\.js$' })) { throw "preload.js missing from package" }
+          if (-not ($listing | Where-Object { $_ -match '(^|[\\/])overlayPreload\.js$' })) { throw "overlayPreload.js missing from package" }
+      - name: Save Windows installer for manual Northgard testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: longhouse-windows-pr-${{ github.run_number }}
+          path: dist/*.exe
+          if-no-files-found: error
+          retention-days: 14
+  macos-dmg:
+    name: macOS DMGs (Apple Silicon and Intel)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run unit tests
+        run: npm test
+      - name: Build unsigned DMGs for both Mac architectures
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --mac dmg --x64 --arm64 --publish never
+      - name: Verify both architecture-specific DMGs exist
+        shell: bash
+        run: |
+          ls -lh dist/*.dmg
+          test "$(find dist -maxdepth 1 -name '*.dmg' | wc -l | tr -d ' ')" -eq 2
+          test "$(find dist -maxdepth 1 -name '*arm64.dmg' | wc -l | tr -d ' ')" -eq 1
+      - name: Save Mac DMGs for manual Northgard testing
+        uses: actions/upload-artifact@v4
+        with:
+          name: longhouse-macos-pr-${{ github.run_number }}
+          path: dist/*.dmg
+          if-no-files-found: error
+          retention-days: 14

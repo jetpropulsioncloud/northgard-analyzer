@@ -1,5 +1,24 @@
 document.addEventListener("DOMContentLoaded", () => {
   const { escapeHtml } = window.SafeHtml;
+  const desktop = window.longhouse || {
+    closeApp: () => window.close(),
+    openBuild: () => window.alert('The in-game overlay requires the desktop app.'),
+    getStaticData: async () => {
+      const readJson = async file => {
+        const response = await fetch(`./data/${file}`);
+        if (!response.ok) throw new Error(`Could not load ${file}`);
+        return response.json();
+      };
+      const [militaryPaths, clanLore] = await Promise.all([
+        readJson('militarypath.json'), readJson('lore.json')
+      ]);
+      return { militaryPaths, clanLore };
+    },
+    onAppVersion: () => {},
+    onUpdateAvailable: () => {},
+    onDownloadProgress: () => {},
+    onUpdateDownloaded: () => {}
+  };
   const stayLoggedIn = localStorage.getItem("stayLoggedIn") === "true";
   const persistenceMode = stayLoggedIn ? window.browserLocalPersistence : window.browserSessionPersistence;
   window.setPersistence(window.auth, persistenceMode).then(() => {
@@ -54,16 +73,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (closeBtn) {
     closeBtn.addEventListener('click', () => {
     try {
-      ipcRenderer.send('request-app-close');
+      desktop.closeApp();
     } catch (e) {
       try { window.close(); } catch {}
     }
   });
-  const { ipcRenderer } = require("electron");
-  const fs = require("fs");
-  const path = require("path");
-  ///const dataDir = path.join(__dirname, "data");
-  
   const {
     db,
     collection,
@@ -215,7 +229,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function enc(v) { return encodeURIComponent(String(v)); }
   function dec(v) { try { return decodeURIComponent(String(v)); } catch { return v; } }
 
-  ipcRenderer.on("update-available", () => {
+  desktop.onUpdateAvailable(() => {
     const container = document.getElementById("updateProgressContainer");
     const progressBar = document.getElementById("updateProgressBar");
     const progressText = document.getElementById("updateProgressText");
@@ -225,7 +239,7 @@ document.addEventListener("DOMContentLoaded", () => {
     progressText.textContent = "0%";
   });
 
-  ipcRenderer.on("download-progress", (_, progressObj) => {
+  desktop.onDownloadProgress(progressObj => {
     const container = document.getElementById("updateProgressContainer");
     const progressBar = document.getElementById("updateProgressBar");
     const progressText = document.getElementById("updateProgressText");
@@ -236,7 +250,7 @@ document.addEventListener("DOMContentLoaded", () => {
     progressText.textContent = `${percent}%`;
   });
 
-  ipcRenderer.on("update-downloaded", () => {
+  desktop.onUpdateDownloaded(() => {
     const container = document.getElementById("updateProgressContainer");
     if (container) container.style.display = "none";
   });
@@ -254,30 +268,17 @@ document.addEventListener("DOMContentLoaded", () => {
       loreTreeFrame.style.display = "block";
     }
   });
-  function resolveDatadir () {
-    const packagedPath = path.join(process.resourcesPath, "data")
-    try {
-      fs.accessSync(packagedPath);
-      return packagedPath;
-    } catch {
-      return path.join(__dirname, "data")
-    }
-  }
-  const dataDir = resolveDatadir();
   let militaryPaths = {};
   let clanLore = {};
-  try {
-    militaryPaths = JSON.parse(fs.readFileSync(path.resolve(dataDir, "militarypath.json")));
-  } catch (e) {
-    console.error("militarypath.json load error", e);
-  }
-  try {
-    clanLore = JSON.parse(fs.readFileSync(path.resolve(dataDir, "lore.json")));
-  } catch (e) {
-    console.error("lore.json load error", e);
-  }
+  const staticDataReady = desktop.getStaticData().then(data => {
+    militaryPaths = data.militaryPaths || {};
+    clanLore = data.clanLore || {};
+  }).catch(error => {
+    console.error('Could not load bundled game data:', error);
+  });
 
-  newClan.addEventListener("change", () => {
+  newClan.addEventListener("change", async () => {
+    await staticDataReady;
     const clan = newClan.value;
     if (!clan) return;
     pathSelector.innerHTML = "";
@@ -356,7 +357,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const closeBtn = e.target.closest(".js-close");
     if (closeBtn) {
-      ipcRenderer.send("request-app-close");
+      desktop.closeApp();
       return;
     }
   });
@@ -802,9 +803,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => { buildSubmitCooldown = false; }, 5000);
 
     const loreMode = loreTreeMode.checked ? "tree" : "json";
-    let militaryPaths = {}, clanLore = {};
-    try { militaryPaths = JSON.parse(fs.readFileSync(path.resolve(dataDir,"militarypath.json"))); } catch {}
-    try { clanLore = JSON.parse(fs.readFileSync(path.resolve(dataDir,"lore.json"))); } catch {}
     try {
       await addDoc(collection(db, "builds"), {
         name: buildName,
@@ -978,7 +976,7 @@ document.addEventListener("DOMContentLoaded", () => {
       docId: buildId
     };
 
-    ipcRenderer.send("open-build-window", buildWithName);
+    desktop.openBuild(buildWithName);
   }
 
   window.openBuildInWindow = openBuildInWindow;
@@ -1060,8 +1058,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function showPostPane() { showTab("post-tab"); }
 
-  ipcRenderer.on("app-version", (_, version) => {
-    document.body.insertAdjacentHTML("beforeend", `<div style="position:fixed;bottom:10px;right:10px;color:#999;">v${version}</div>`);
+  desktop.onAppVersion(version => {
+    const label = document.createElement('div');
+    label.style.cssText = 'position:fixed;bottom:10px;right:10px;color:#999;';
+    label.textContent = `v${version}`;
+    document.body.appendChild(label);
   });
   const howToBtn = document.getElementById("howToSubmitBtn");
   const howToContent = document.getElementById("howToSubmitContent");
