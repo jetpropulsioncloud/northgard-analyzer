@@ -34,6 +34,7 @@
       "viewBuild.html",
       "renderer.js",
       "safeHtml.js",
+      "ipcSecurity.js",
       "lore-tree.html",
       "main.js",
       "preload.js",

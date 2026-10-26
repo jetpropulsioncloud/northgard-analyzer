@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, globalShortcut } = require('electron');
 const path = require('path');
 const { autoUpdater } = require('electron-updater');
 const log = require('electron-log');
+const { isTrustedMainSender, isValidBuildPayload } = require('./ipcSecurity');
 
 autoUpdater.logger = log;
 autoUpdater.logger.transports.file.level = 'info';
@@ -85,6 +86,7 @@ function createWindow() {
     log.error('AutoUpdater error:', err == null ? 'unknown' : (err.stack || err).toString());
   });
 }
+
 
 function getBuildWindow() {
   if (!buildWin || buildWin.isDestroyed()) {
@@ -350,13 +352,15 @@ app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
 
-ipcMain.on('request-app-close', () => {
+ipcMain.on('request-app-close', (event) => {
+  if (!isTrustedMainSender(event, mainWindow, path.join(__dirname, 'index.html'))) return;
   if (mainWindow) {
     mainWindow.close();
   }
 });
 
-ipcMain.on('reset-window-focus', () => {
+ipcMain.on('reset-window-focus', (event) => {
+  if (!isTrustedMainSender(event, mainWindow, path.join(__dirname, 'index.html'))) return;
   const win = BrowserWindow.getFocusedWindow();
 
   if (win) {
@@ -365,23 +369,31 @@ ipcMain.on('reset-window-focus', () => {
   }
 });
 
-ipcMain.on('overlay-lock', () => {
+ipcMain.on('overlay-lock', (event) => {
+  if (!isTrustedMainSender(event, mainWindow, path.join(__dirname, 'index.html'))) return;
   setOverlayLocked(true);
 });
 
-ipcMain.on('overlay-unlock', () => {
+ipcMain.on('overlay-unlock', (event) => {
+  if (!isTrustedMainSender(event, mainWindow, path.join(__dirname, 'index.html'))) return;
   setOverlayLocked(false);
 });
 
-ipcMain.on('overlay-toggle-lock', () => {
+ipcMain.on('overlay-toggle-lock', (event) => {
+  if (!isTrustedMainSender(event, mainWindow, path.join(__dirname, 'index.html'))) return;
   toggleOverlayLock();
 });
 
-ipcMain.on('overlay-toggle-visibility', () => {
+ipcMain.on('overlay-toggle-visibility', (event) => {
+  if (!isTrustedMainSender(event, mainWindow, path.join(__dirname, 'index.html'))) return;
   toggleOverlayVisibility();
 });
 
 ipcMain.on('open-build-window', (event, buildData) => {
+  if (!isTrustedMainSender(event, mainWindow, path.join(__dirname, 'index.html')) || !isValidBuildPayload(buildData)) {
+    log.warn('Rejected invalid or untrusted open-build-window IPC request');
+    return;
+  }
   if (buildWin && !buildWin.isDestroyed()) {
     buildWin.close();
   }
