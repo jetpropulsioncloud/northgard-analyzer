@@ -1,8 +1,11 @@
 document.addEventListener("DOMContentLoaded", () => {
+  const { escapeHtml } = window.SafeHtml;
   const stayLoggedIn = localStorage.getItem("stayLoggedIn") === "true";
   const persistenceMode = stayLoggedIn ? window.browserLocalPersistence : window.browserSessionPersistence;
   window.setPersistence(window.auth, persistenceMode).then(() => {
     console.log("✅ Persistence set:", stayLoggedIn ? "Local" : "Session");
+  }).catch(error => {
+    console.error("Failed to set authentication persistence:", error);
   });
   const loginSection = document.getElementById("login-screen");  
   const homeScreen = document.getElementById("home-screen");
@@ -530,8 +533,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function renderBuildSteps(steps) {
     return (steps || []).map(step => {
-      if (step.startsWith("#")) return `<h4 class="phase-header">📅 ${step.slice(1).trim()}</h4>`;
-      return `<div class="build-step">${getEmojiForStep(step)} ${step}</div>`;
+      if (step.startsWith("#")) return `<h4 class="phase-header">📅 ${escapeHtml(step.slice(1).trim())}</h4>`;
+      return `<div class="build-step">${getEmojiForStep(step)} ${escapeHtml(step)}</div>`;
     }).join("");
   }
 
@@ -562,9 +565,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const upvoteCount = build.upvotes?.length || 0;
 
       const html = `
-        <h4>${buildName} (${build.clan})</h4>
-        <p><strong>👤 Submitted by:</strong> ${build.username || "Unknown"}</p>
-        <p><strong>Tags:</strong> ${tagText}</p>
+        <h4>${escapeHtml(buildName)} (${escapeHtml(build.clan)})</h4>
+        <p><strong>👤 Submitted by:</strong> ${escapeHtml(build.username || "Unknown")}</p>
+        <p><strong>Tags:</strong> ${escapeHtml(tagText)}</p>
         ${canUpvote
           ? `<button class="upvote-btn" data-action="upvote" data-id="${enc(buildId)}">🔼 Upvote</button>`
           : isOwnBuild
@@ -875,7 +878,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const card = document.createElement("div");
           card.className = "build-card";
           card.innerHTML = `
-            ${b.name || "Untitled"} (${b.clan})
+            ${escapeHtml(b.name || "Untitled")} (${escapeHtml(b.clan)})
             <p>👍 ${upvoteCount} Upvote${upvoteCount === 1 ? "" : "s"}</p>
             <button class="view-btn" data-action="view" data-id="${enc(d.id)}">View</button>
             <button class="delete-btn" data-id="${enc(d.id)}">Delete</button>
@@ -946,8 +949,8 @@ document.addEventListener("DOMContentLoaded", () => {
           const upvoteCount = b.upvotes?.length || 0;
 
           card.innerHTML = `
-            ${b.name || "Untitled"} (${b.clan})
-            <p>👤 Submitted by: ${b.username || "Unknown"}</p>
+            ${escapeHtml(b.name || "Untitled")} (${escapeHtml(b.clan)})
+            <p>👤 Submitted by: ${escapeHtml(b.username || "Unknown")}</p>
             <p>👍 ${upvoteCount} Upvote${upvoteCount === 1 ? "" : "s"}</p>
             <h4><button class="view-btn" data-action="view" data-id="${enc(b.docId)}">View</button></h4>
           `;

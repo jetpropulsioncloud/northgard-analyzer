@@ -1,0 +1,57 @@
+name: Validation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - fix/foundations-safe-rendering
+      - security/ipc-boundaries
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-and-audit:
+    name: Node tests and full dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Run unit tests
+        run: npm test
+      - name: Syntax check
+        run: |
+          node --check main.js
+          node --check renderer.js
+          node --check safeHtml.js
+      - name: Audit all dependencies (all severity levels)
+        run: npm audit --audit-level=low
+  windows-smoke:
+    name: Windows packaging smoke test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Package Windows app without publishing
+        run: npx electron-builder --win --publish never
+      - name: Verify packaged lore page
+        shell: pwsh
+        run: |
+          $asar = Get-ChildItem dist -Recurse -Filter app.asar | Select-Object -First 1
+          if (-not $asar) { throw "Packaged app.asar not found" }
+          $listing = & npx asar list $asar.FullName
+          if ($LASTEXITCODE -ne 0) { throw "Could not inspect app.asar" }
+          if (-not ($listing | Where-Object { $_ -match '(^|[\\/])lore-tree\.html$' })) { throw "lore-tree.html missing from package" }
+          if (-not ($listing | Where-Object { $_ -match '(^|[\\/])safeHtml\.js$' })) { throw "safeHtml.js missing from package" }
