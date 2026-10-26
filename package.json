@@ -7,23 +7,20 @@
   "license": "ISC",
   "description": "We'll figure it out later lol",
   "scripts": {
-    "start": "electron-forge start",
+    "start": "electron .",
     "dist": "electron-builder -w",
     "build": "electron-builder -w",
     "publish": "electron-builder -w -p always",
     "test": "node --test"
   },
   "devDependencies": {
-    "@electron-forge/cli": "^7.8.1",
-    "electron": "^39.8.5",
-    "electron-builder": "^26.0.12"
+    "electron": "^45.0.0",
+    "electron-builder": "^26.0.12",
+    "firebase-admin": "^14.5.0"
   },
   "dependencies": {
     "electron-log": "^5.4.1",
-    "electron-updater": "^6.6.2",
-    "firebase": "^12.0.0",
-    "firebase-admin": "^13.4.0",
-    "yaml": "^2.8.0"
+    "electron-updater": "^6.6.2"
   },
   "build": {
     "copyright": "© 2025 Blockclub Team",

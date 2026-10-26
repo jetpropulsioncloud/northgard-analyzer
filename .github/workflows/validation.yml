@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   unit-and-audit:
-    name: Node tests and production audit
+    name: Node tests and full dependency audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,8 +31,8 @@ jobs:
           node --check main.js
           node --check renderer.js
           node --check safeHtml.js
-      - name: Audit production dependencies (high and critical)
-        run: npm audit --omit=dev --audit-level=high
+      - name: Audit all dependencies (all severity levels)
+        run: npm audit --audit-level=low
   windows-smoke:
     name: Windows packaging smoke test
     runs-on: windows-latest
