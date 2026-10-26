@@ -94,7 +94,7 @@
     </div>
 
 <script type="module" nonce="theLonghouse2025">
-  const { ipcRenderer } = require('electron');
+  const overlay = window.longhouseOverlay;
 
   // Close the popup
   function closeApp() {
@@ -243,23 +243,23 @@
     goToSection(currentSectionIndex - 1);
   }
 
-  ipcRenderer.on("overlay-next-section", () => {
+  overlay.onNextSection(() => {
     nextSection();
   });
 
-  ipcRenderer.on("overlay-prev-section", () => {
+  overlay.onPreviousSection(() => {
     previousSection();
   });
 
-  ipcRenderer.on("overlay-first-section", () => {
+  overlay.onFirstSection(() => {
     goToSection(0);
   });
 
-  ipcRenderer.on("overlay-last-section", () => {
+  overlay.onLastSection(() => {
     goToSection(buildSections.length - 1);
   });
 
-  ipcRenderer.on('load-build', (event, build) => {
+  overlay.onLoadBuild(build => {
     currentBuild = build;
     buildSections = splitBuildIntoSections(build.steps || []);
     currentSectionIndex = 0;
@@ -362,7 +362,7 @@
 </script>
 <script>
   (() => {
-    const overlayScrollIpc = require('electron').ipcRenderer;
+    const overlay = window.longhouseOverlay;
 
     function getScrollableElement() {
       const elements = Array.from(document.querySelectorAll('body, body *'));
@@ -405,27 +405,27 @@
       });
     }
 
-    overlayScrollIpc.on('overlay-scroll-down', () => {
+    overlay.onScrollDown(() => {
       scrollOverlay(180);
     });
 
-    overlayScrollIpc.on('overlay-scroll-up', () => {
+    overlay.onScrollUp(() => {
       scrollOverlay(-180);
     });
 
-    overlayScrollIpc.on('overlay-scroll-page-down', () => {
+    overlay.onScrollPageDown(() => {
       scrollOverlay(500);
     });
 
-    overlayScrollIpc.on('overlay-scroll-page-up', () => {
+    overlay.onScrollPageUp(() => {
       scrollOverlay(-500);
     });
 
-    overlayScrollIpc.on('overlay-go-top', () => {
+    overlay.onScrollTop(() => {
       scrollOverlayTo(0);
     });
 
-    overlayScrollIpc.on('overlay-go-bottom', () => {
+    overlay.onScrollBottom(() => {
       const element = getScrollableElement();
 
       scrollOverlayTo(element.scrollHeight);

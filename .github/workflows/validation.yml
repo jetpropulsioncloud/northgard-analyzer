@@ -32,6 +32,8 @@ jobs:
           node --check renderer.js
           node --check safeHtml.js
           node --check ipcSecurity.js
+          node --check preload.js
+          node --check overlayPreload.js
       - name: Audit all dependencies (all severity levels)
         run: npm audit --audit-level=low
   windows-smoke:
@@ -45,6 +47,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - name: Launch sandboxed Electron main and overlay smoke windows
+        run: npx electron scripts/electronSmoke.js
       - name: Package Windows app without publishing
         run: npx electron-builder --win --publish never
       - name: Verify packaged lore page
@@ -57,3 +61,5 @@ jobs:
           if (-not ($listing | Where-Object { $_ -match '(^|[\\/])lore-tree\.html$' })) { throw "lore-tree.html missing from package" }
           if (-not ($listing | Where-Object { $_ -match '(^|[\\/])safeHtml\.js$' })) { throw "safeHtml.js missing from package" }
           if (-not ($listing | Where-Object { $_ -match '(^|[\\/])ipcSecurity\.js$' })) { throw "ipcSecurity.js missing from package" }
+          if (-not ($listing | Where-Object { $_ -match '(^|[\\/])preload\.js$' })) { throw "preload.js missing from package" }
+          if (-not ($listing | Where-Object { $_ -match '(^|[\\/])overlayPreload\.js$' })) { throw "overlayPreload.js missing from package" }
